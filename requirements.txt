@@ -1,0 +1,39 @@
+# NiTriTe V13.0 - Dépendances requises
+# Application de maintenance informatique professionnelle
+
+# ===== DÉPENDANCES D'EXÉCUTION PRINCIPALES =====
+
+# Interface graphique moderne
+customtkinter>=5.2.0  # Interface moderne pour Tkinter (obligatoire)
+Pillow>=10.0.0        # Traitement d'images pour logos et icônes
+# Note: tkinter est inclus avec Python sur Windows
+
+# Networking et téléchargements
+requests>=2.31.0      # Requêtes HTTP pour téléchargements
+urllib3>=2.0.0        # Gestion URL avancée
+certifi>=2023.0.0     # Certificats SSL
+
+# Utilitaires système
+psutil>=5.9.0         # Monitoring système (CPU, RAM, Disque)
+packaging>=23.0       # Gestion des versions
+tqdm>=4.66.0          # Barres de progression
+colorama>=0.4.6       # Couleurs terminal (Windows)
+
+# Windows API (OBLIGATOIRE sur Windows)
+pywin32>=306; sys_platform == "win32"   # API Windows
+wmi>=1.5.1; sys_platform == "win32"     # Diagnostic système avancé (WMI)
+
+# ===== DÉPENDANCES OPTIONNELLES =====
+
+# Web Backend (pour version HTML - optionnel)
+flask>=3.0.0
+flask-cors>=4.0.0
+flask-socketio>=5.3.0
+
+# ===== DÉPENDANCES DE BUILD =====
+# Pour créer l'exécutable portable
+pyinstaller>=6.0.0
+
+# ===== NOTES D'INSTALLATION =====
+# Installation rapide: pip install -r requirements.txt
+# Mode portable: toutes les dépendances seront embarquées dans l'exe

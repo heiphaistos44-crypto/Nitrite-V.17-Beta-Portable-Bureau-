@@ -1,0 +1,839 @@
+"""
+Dashboard de surveillance système en temps réel pour NiTriTe V13
+Interface Tkinter avec graphiques et alertes
+"""
+
+import tkinter as tk
+from tkinter import ttk, font
+import customtkinter as ctk
+import logging
+from datetime import datetime
+from collections import deque
+from typing import Dict, List
+import threading
+
+try:
+    from system_monitor import SystemMonitor, format_bytes
+except ImportError:
+    import sys
+    from pathlib import Path
+    sys.path.append(str(Path(__file__).parent))
+    from system_monitor import SystemMonitor, format_bytes
+
+
+class MonitoringDashboard(ctk.CTkFrame):
+    """Dashboard de surveillance système avec graphiques temps réel"""
+
+    def __init__(self, parent_frame, colors=None):
+        # Initialiser le Frame parent
+        super().__init__(parent_frame, fg_color='#0a0a0a', corner_radius=0)
+
+        self.logger = logging.getLogger(__name__)
+
+        # Couleurs (thème noir/orange par défaut)
+        self.colors = colors or {
+            'bg': '#0a0a0a',
+            'fg': '#ffffff',
+            'primary': '#ff6b00',
+            'secondary': '#1e1e2e',
+            'success': '#00e676',
+            'warning': '#ffa000',
+            'danger': '#ff3d00',
+            'text_secondary': '#888888',
+            'border': '#333333'
+        }
+
+        # Moniteur système
+        self.monitor = SystemMonitor()
+
+        # Historique pour graphiques (max 60 points)
+        self.history = {
+            'cpu': deque(maxlen=60),
+            'memory': deque(maxlen=60),
+            'network_up': deque(maxlen=60),
+            'network_down': deque(maxlen=60)
+        }
+
+        # État
+        self.is_running = False
+        self.update_job = None
+
+        # Interface
+        self.create_ui()
+
+    def create_ui(self):
+        """Crée l'interface du dashboard"""
+        # Frame principal avec scrollbar (self est déjà le Frame principal)
+        main_container = tk.Frame(self, bg=self.colors['bg'])
+        main_container.pack(fill=tk.BOTH, expand=True)
+
+        # Canvas avec scrollbar
+        canvas = tk.Canvas(main_container, bg=self.colors['bg'], highlightthickness=0)
+        scrollbar = ttk.Scrollbar(main_container, orient=tk.VERTICAL, command=canvas.yview)
+
+        self.scrollable_frame = tk.Frame(canvas, bg=self.colors['bg'])
+        self.scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+
+        canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+
+        canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        # Header avec contrôles
+        self._create_header()
+
+        # Grille de widgets
+        content = tk.Frame(self.scrollable_frame, bg=self.colors['bg'])
+        content.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+
+        # Ligne 1: CPU + Mémoire
+        row1 = tk.Frame(content, bg=self.colors['bg'])
+        row1.pack(fill=tk.X, pady=5)
+
+        self.cpu_widget = self._create_metric_widget(row1, "Processeur (CPU)", 0)
+        self.cpu_widget.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=5)
+
+        self.memory_widget = self._create_metric_widget(row1, "Mémoire (RAM)", 0)
+        self.memory_widget.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=5)
+
+        # Ligne 2: Réseau + Températures
+        row2 = tk.Frame(content, bg=self.colors['bg'])
+        row2.pack(fill=tk.X, pady=5)
+
+        self.network_widget = self._create_network_widget(row2)
+        self.network_widget.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=5)
+
+        self.temp_widget = self._create_temperature_widget(row2)
+        self.temp_widget.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=5)
+
+        # Ligne 3: Disques
+        row3 = tk.Frame(content, bg=self.colors['bg'])
+        row3.pack(fill=tk.X, pady=5)
+
+        self.disk_widget = self._create_disk_widget(row3)
+        self.disk_widget.pack(fill=tk.BOTH, expand=True, padx=5)
+
+        # Ligne 4: Processus + Alertes
+        row4 = tk.Frame(content, bg=self.colors['bg'])
+        row4.pack(fill=tk.X, pady=5)
+
+        self.process_widget = self._create_process_widget(row4)
+        self.process_widget.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=5)
+
+        self.alerts_widget = self._create_alerts_widget(row4)
+        self.alerts_widget.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=5)
+
+        # Ligne 5: Graphiques
+        row5 = tk.Frame(content, bg=self.colors['bg'])
+        row5.pack(fill=tk.X, pady=5)
+
+        self.chart_widget = self._create_chart_widget(row5)
+        self.chart_widget.pack(fill=tk.BOTH, expand=True, padx=5)
+
+    def _create_header(self):
+        """Crée le header avec titre et boutons de contrôle"""
+        header = tk.Frame(self.scrollable_frame, bg=self.colors['secondary'], height=60)
+        header.pack(fill=tk.X, padx=10, pady=10)
+        header.pack_propagate(False)
+
+        # Titre
+        title_label = tk.Label(
+            header,
+            text="📊 Surveillance Système en Temps Réel",
+            bg=self.colors['secondary'],
+            fg=self.colors['primary'],
+            font=('Segoe UI', 16, 'bold')
+        )
+        title_label.pack(side=tk.LEFT, padx=20)
+
+        # Status
+        self.status_label = tk.Label(
+            header,
+            text="● Arrêté",
+            bg=self.colors['secondary'],
+            fg=self.colors['text_secondary'],
+            font=('Segoe UI', 10)
+        )
+        self.status_label.pack(side=tk.LEFT, padx=10)
+
+        # Boutons
+        btn_frame = tk.Frame(header, bg=self.colors['secondary'])
+        btn_frame.pack(side=tk.RIGHT, padx=20)
+
+        self.start_btn = tk.Button(
+            btn_frame,
+            text="▶ Démarrer",
+            command=self.start_monitoring,
+            bg=self.colors['success'],
+            fg='white',
+            font=('Segoe UI', 10, 'bold'),
+            bd=0,
+            padx=20,
+            pady=8,
+            cursor='hand2'
+        )
+        self.start_btn.pack(side=tk.LEFT, padx=5)
+
+        self.stop_btn = tk.Button(
+            btn_frame,
+            text="⏸ Arrêter",
+            command=self.stop_monitoring,
+            bg=self.colors['danger'],
+            fg='white',
+            font=('Segoe UI', 10, 'bold'),
+            bd=0,
+            padx=20,
+            pady=8,
+            cursor='hand2',
+            state=tk.DISABLED
+        )
+        self.stop_btn.pack(side=tk.LEFT, padx=5)
+
+    def _create_metric_widget(self, parent, title, value):
+        """Crée un widget de métrique avec barre de progression"""
+        frame = tk.Frame(parent, bg=self.colors['secondary'], relief=tk.FLAT)
+        frame.config(highlightbackground=self.colors['border'], highlightthickness=1)
+
+        # Header
+        header = tk.Frame(frame, bg=self.colors['secondary'])
+        header.pack(fill=tk.X, padx=15, pady=10)
+
+        title_label = tk.Label(
+            header,
+            text=title,
+            bg=self.colors['secondary'],
+            fg=self.colors['text_secondary'],
+            font=('Segoe UI', 10)
+        )
+        title_label.pack(side=tk.LEFT)
+
+        # Valeur principale
+        value_label = tk.Label(
+            frame,
+            text=f"{value}%",
+            bg=self.colors['secondary'],
+            fg=self.colors['fg'],
+            font=('Segoe UI', 32, 'bold')
+        )
+        value_label.pack(pady=10)
+
+        # Barre de progression
+        progress_frame = tk.Frame(frame, bg=self.colors['secondary'])
+        progress_frame.pack(fill=tk.X, padx=15, pady=10)
+
+        progress_bg = tk.Canvas(
+            progress_frame,
+            bg='#1a1a1a',
+            height=8,
+            highlightthickness=0
+        )
+        progress_bg.pack(fill=tk.X)
+
+        # Détails
+        details_label = tk.Label(
+            frame,
+            text="",
+            bg=self.colors['secondary'],
+            fg=self.colors['text_secondary'],
+            font=('Segoe UI', 9)
+        )
+        details_label.pack(pady=5)
+
+        # Stocker les références
+        frame.value_label = value_label
+        frame.progress_canvas = progress_bg
+        frame.details_label = details_label
+
+        return frame
+
+    def _create_network_widget(self, parent):
+        """Crée le widget réseau"""
+        frame = tk.Frame(parent, bg=self.colors['secondary'], relief=tk.FLAT)
+        frame.config(highlightbackground=self.colors['border'], highlightthickness=1)
+
+        # Titre
+        title = tk.Label(
+            frame,
+            text="🌐 Réseau",
+            bg=self.colors['secondary'],
+            fg=self.colors['text_secondary'],
+            font=('Segoe UI', 10)
+        )
+        title.pack(pady=10)
+
+        # Upload
+        upload_frame = tk.Frame(frame, bg=self.colors['secondary'])
+        upload_frame.pack(fill=tk.X, padx=15, pady=5)
+
+        tk.Label(
+            upload_frame,
+            text="↑ Upload:",
+            bg=self.colors['secondary'],
+            fg=self.colors['text_secondary'],
+            font=('Segoe UI', 9)
+        ).pack(side=tk.LEFT)
+
+        upload_label = tk.Label(
+            upload_frame,
+            text="0 KB/s",
+            bg=self.colors['secondary'],
+            fg=self.colors['success'],
+            font=('Segoe UI', 10, 'bold')
+        )
+        upload_label.pack(side=tk.RIGHT)
+
+        # Download
+        download_frame = tk.Frame(frame, bg=self.colors['secondary'])
+        download_frame.pack(fill=tk.X, padx=15, pady=5)
+
+        tk.Label(
+            download_frame,
+            text="↓ Download:",
+            bg=self.colors['secondary'],
+            fg=self.colors['text_secondary'],
+            font=('Segoe UI', 9)
+        ).pack(side=tk.LEFT)
+
+        download_label = tk.Label(
+            download_frame,
+            text="0 KB/s",
+            bg=self.colors['secondary'],
+            fg=self.colors['primary'],
+            font=('Segoe UI', 10, 'bold')
+        )
+        download_label.pack(side=tk.RIGHT)
+
+        # Total
+        total_label = tk.Label(
+            frame,
+            text="Total: ↑ 0 MB | ↓ 0 MB",
+            bg=self.colors['secondary'],
+            fg=self.colors['text_secondary'],
+            font=('Segoe UI', 8)
+        )
+        total_label.pack(pady=10)
+
+        frame.upload_label = upload_label
+        frame.download_label = download_label
+        frame.total_label = total_label
+
+        return frame
+
+    def _create_temperature_widget(self, parent):
+        """Crée le widget températures"""
+        frame = tk.Frame(parent, bg=self.colors['secondary'], relief=tk.FLAT)
+        frame.config(highlightbackground=self.colors['border'], highlightthickness=1)
+
+        title = tk.Label(
+            frame,
+            text="🌡️ Températures",
+            bg=self.colors['secondary'],
+            fg=self.colors['text_secondary'],
+            font=('Segoe UI', 10)
+        )
+        title.pack(pady=10)
+
+        # Liste des températures
+        temps_list = tk.Frame(frame, bg=self.colors['secondary'])
+        temps_list.pack(fill=tk.BOTH, expand=True, padx=15, pady=5)
+
+        frame.temps_list = temps_list
+
+        return frame
+
+    def _create_disk_widget(self, parent):
+        """Crée le widget disques"""
+        frame = tk.Frame(parent, bg=self.colors['secondary'], relief=tk.FLAT)
+        frame.config(highlightbackground=self.colors['border'], highlightthickness=1)
+
+        title = tk.Label(
+            frame,
+            text="💾 Disques",
+            bg=self.colors['secondary'],
+            fg=self.colors['text_secondary'],
+            font=('Segoe UI', 10)
+        )
+        title.pack(pady=10)
+
+        # Liste des disques
+        disks_list = tk.Frame(frame, bg=self.colors['secondary'])
+        disks_list.pack(fill=tk.BOTH, expand=True, padx=15, pady=10)
+
+        frame.disks_list = disks_list
+
+        return frame
+
+    def _create_process_widget(self, parent):
+        """Crée le widget processus"""
+        frame = tk.Frame(parent, bg=self.colors['secondary'], relief=tk.FLAT)
+        frame.config(highlightbackground=self.colors['border'], highlightthickness=1)
+
+        title = tk.Label(
+            frame,
+            text="⚡ Top Processus (CPU)",
+            bg=self.colors['secondary'],
+            fg=self.colors['text_secondary'],
+            font=('Segoe UI', 10)
+        )
+        title.pack(pady=10)
+
+        # Liste scrollable
+        list_container = tk.Frame(frame, bg=self.colors['secondary'])
+        list_container.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+
+        scrollbar = ttk.Scrollbar(list_container)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        process_list = tk.Listbox(
+            list_container,
+            bg='#1a1a1a',
+            fg=self.colors['fg'],
+            font=('Consolas', 9),
+            yscrollcommand=scrollbar.set,
+            selectbackground=self.colors['primary'],
+            bd=0,
+            highlightthickness=0
+        )
+        process_list.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.config(command=process_list.yview)
+
+        frame.process_list = process_list
+
+        return frame
+
+    def _create_alerts_widget(self, parent):
+        """Crée le widget alertes"""
+        frame = tk.Frame(parent, bg=self.colors['secondary'], relief=tk.FLAT)
+        frame.config(highlightbackground=self.colors['border'], highlightthickness=1)
+
+        # Header avec compteur
+        header = tk.Frame(frame, bg=self.colors['secondary'])
+        header.pack(fill=tk.X, padx=10, pady=10)
+
+        tk.Label(
+            header,
+            text="🚨 Alertes",
+            bg=self.colors['secondary'],
+            fg=self.colors['text_secondary'],
+            font=('Segoe UI', 10)
+        ).pack(side=tk.LEFT)
+
+        alerts_count = tk.Label(
+            header,
+            text="0",
+            bg=self.colors['danger'],
+            fg='white',
+            font=('Segoe UI', 8, 'bold'),
+            padx=6,
+            pady=2
+        )
+        alerts_count.pack(side=tk.RIGHT)
+
+        # Liste scrollable
+        list_container = tk.Frame(frame, bg=self.colors['secondary'])
+        list_container.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+
+        scrollbar = ttk.Scrollbar(list_container)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        alerts_list = tk.Listbox(
+            list_container,
+            bg='#1a1a1a',
+            fg=self.colors['warning'],
+            font=('Segoe UI', 9),
+            yscrollcommand=scrollbar.set,
+            bd=0,
+            highlightthickness=0
+        )
+        alerts_list.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.config(command=alerts_list.yview)
+
+        frame.alerts_list = alerts_list
+        frame.alerts_count = alerts_count
+
+        return frame
+
+    def _create_chart_widget(self, parent):
+        """Crée le widget graphique"""
+        frame = tk.Frame(parent, bg=self.colors['secondary'], relief=tk.FLAT)
+        frame.config(highlightbackground=self.colors['border'], highlightthickness=1)
+
+        title = tk.Label(
+            frame,
+            text="📈 Historique (dernières 60 secondes)",
+            bg=self.colors['secondary'],
+            fg=self.colors['text_secondary'],
+            font=('Segoe UI', 10)
+        )
+        title.pack(pady=10)
+
+        # Canvas pour graphique
+        chart_canvas = tk.Canvas(
+            frame,
+            bg='#1a1a1a',
+            height=200,
+            highlightthickness=0
+        )
+        chart_canvas.pack(fill=tk.X, padx=15, pady=10)
+
+        # Légende
+        legend = tk.Frame(frame, bg=self.colors['secondary'])
+        legend.pack(pady=10)
+
+        self._create_legend_item(legend, "CPU", self.colors['primary'])
+        self._create_legend_item(legend, "RAM", self.colors['success'])
+        self._create_legend_item(legend, "Net ↑", '#00b0ff')
+        self._create_legend_item(legend, "Net ↓", '#ffa000')
+
+        frame.chart_canvas = chart_canvas
+
+        return frame
+
+    def _create_legend_item(self, parent, text, color):
+        """Crée un élément de légende"""
+        item = tk.Frame(parent, bg=self.colors['secondary'])
+        item.pack(side=tk.LEFT, padx=10)
+
+        color_box = tk.Canvas(item, bg=color, width=12, height=12, highlightthickness=0)
+        color_box.pack(side=tk.LEFT, padx=5)
+
+        tk.Label(
+            item,
+            text=text,
+            bg=self.colors['secondary'],
+            fg=self.colors['text_secondary'],
+            font=('Segoe UI', 9)
+        ).pack(side=tk.LEFT)
+
+    def start_monitoring(self):
+        """Démarre la surveillance"""
+        if not self.is_running:
+            self.is_running = True
+            self.monitor.start_monitoring(interval=1.0)
+
+            # Update UI
+            self.start_btn.config(state=tk.DISABLED)
+            self.stop_btn.config(state=tk.NORMAL)
+            self.status_label.config(text="● En cours", fg=self.colors['success'])
+
+            # Démarrer mise à jour UI
+            self._update_ui()
+
+            self.logger.info("Dashboard démarré")
+
+    def stop_monitoring(self):
+        """Arrête la surveillance"""
+        if self.is_running:
+            self.is_running = False
+            self.monitor.stop_monitoring()
+
+            # Update UI
+            self.start_btn.config(state=tk.NORMAL)
+            self.stop_btn.config(state=tk.DISABLED)
+            self.status_label.config(text="● Arrêté", fg=self.colors['text_secondary'])
+
+            # Annuler mise à jour
+            if self.update_job:
+                self.after_cancel(self.update_job)
+
+            self.logger.info("Dashboard arrêté")
+
+    def _update_ui(self):
+        """Met à jour l'interface avec les nouvelles données"""
+        if not self.is_running:
+            return
+
+        try:
+            data = self.monitor.get_current_data()
+
+            # Update CPU
+            self._update_cpu(data['cpu'])
+
+            # Update mémoire
+            self._update_memory(data['memory'])
+
+            # Update réseau
+            self._update_network(data['network'])
+
+            # Update températures
+            self._update_temperatures(data['temperature'])
+
+            # Update disques
+            self._update_disks(data['disk'])
+
+            # Update processus
+            self._update_processes(data['processes'])
+
+            # Update alertes
+            self._update_alerts()
+
+            # Update graphique
+            self._update_chart(data)
+
+        except Exception as e:
+            self.logger.error(f"Erreur mise à jour UI: {e}")
+
+        # Programmer prochaine mise à jour
+        self.update_job = self.after(1000, self._update_ui)
+
+    def _update_cpu(self, cpu_data):
+        """Met à jour le widget CPU"""
+        percent = cpu_data.get('percent', 0)
+
+        self.cpu_widget.value_label.config(text=f"{percent:.1f}%")
+
+        # Couleur selon utilisation
+        color = self.colors['success']
+        if percent > 80:
+            color = self.colors['danger']
+        elif percent > 60:
+            color = self.colors['warning']
+
+        # Update barre
+        canvas = self.cpu_widget.progress_canvas
+        canvas.delete("all")
+        width = canvas.winfo_width()
+        if width > 1:
+            fill_width = (width * percent) / 100
+            canvas.create_rectangle(0, 0, fill_width, 8, fill=color, outline="")
+
+        # Détails
+        cores = cpu_data.get('cores_logical', 0)
+        freq = cpu_data.get('freq', 0)
+        self.cpu_widget.details_label.config(
+            text=f"{cores} cœurs | {freq:.0f} MHz"
+        )
+
+        # Ajouter à l'historique
+        self.history['cpu'].append(percent)
+
+    def _update_memory(self, mem_data):
+        """Met à jour le widget mémoire"""
+        percent = mem_data.get('percent', 0)
+
+        self.memory_widget.value_label.config(text=f"{percent:.1f}%")
+
+        # Couleur
+        color = self.colors['success']
+        if percent > 85:
+            color = self.colors['danger']
+        elif percent > 70:
+            color = self.colors['warning']
+
+        # Update barre
+        canvas = self.memory_widget.progress_canvas
+        canvas.delete("all")
+        width = canvas.winfo_width()
+        if width > 1:
+            fill_width = (width * percent) / 100
+            canvas.create_rectangle(0, 0, fill_width, 8, fill=color, outline="")
+
+        # Détails
+        used_gb = mem_data.get('used_gb', 0)
+        total_gb = mem_data.get('total_gb', 0)
+        self.memory_widget.details_label.config(
+            text=f"{used_gb:.1f} / {total_gb:.1f} GB"
+        )
+
+        # Historique
+        self.history['memory'].append(percent)
+
+    def _update_network(self, net_data):
+        """Met à jour le widget réseau"""
+        speed_up = net_data.get('speed_up', 0)
+        speed_down = net_data.get('speed_down', 0)
+
+        self.network_widget.upload_label.config(text=f"{speed_up:.1f} KB/s")
+        self.network_widget.download_label.config(text=f"{speed_down:.1f} KB/s")
+
+        sent_mb = net_data.get('bytes_sent_mb', 0)
+        recv_mb = net_data.get('bytes_recv_mb', 0)
+        self.network_widget.total_label.config(
+            text=f"Total: ↑ {sent_mb:.1f} MB | ↓ {recv_mb:.1f} MB"
+        )
+
+        # Historique (normalisé pour graphique)
+        self.history['network_up'].append(min(speed_up / 10, 100))  # Normalise à 0-100
+        self.history['network_down'].append(min(speed_down / 10, 100))
+
+    def _update_temperatures(self, temp_data):
+        """Met à jour le widget températures"""
+        # Clear existing
+        for widget in self.temp_widget.temps_list.winfo_children():
+            widget.destroy()
+
+        if not temp_data:
+            tk.Label(
+                self.temp_widget.temps_list,
+                text="Non disponible",
+                bg=self.colors['secondary'],
+                fg=self.colors['text_secondary'],
+                font=('Segoe UI', 9)
+            ).pack()
+            return
+
+        # Afficher jusqu'à 5 températures
+        for i, (name, info) in enumerate(list(temp_data.items())[:5]):
+            temp_frame = tk.Frame(self.temp_widget.temps_list, bg=self.colors['secondary'])
+            temp_frame.pack(fill=tk.X, pady=2)
+
+            # Nom court
+            short_name = name[:20] + "..." if len(name) > 20 else name
+
+            tk.Label(
+                temp_frame,
+                text=short_name,
+                bg=self.colors['secondary'],
+                fg=self.colors['text_secondary'],
+                font=('Segoe UI', 8),
+                anchor='w'
+            ).pack(side=tk.LEFT)
+
+            temp = info.get('current', 0)
+            color = self.colors['success']
+            if temp > 80:
+                color = self.colors['danger']
+            elif temp > 70:
+                color = self.colors['warning']
+
+            tk.Label(
+                temp_frame,
+                text=f"{temp:.1f}°C",
+                bg=self.colors['secondary'],
+                fg=color,
+                font=('Segoe UI', 9, 'bold')
+            ).pack(side=tk.RIGHT)
+
+    def _update_disks(self, disk_data):
+        """Met à jour le widget disques"""
+        # Clear existing
+        for widget in self.disk_widget.disks_list.winfo_children():
+            widget.destroy()
+
+        for device, info in disk_data.items():
+            disk_frame = tk.Frame(self.disk_widget.disks_list, bg=self.colors['secondary'])
+            disk_frame.pack(fill=tk.X, pady=5)
+
+            # Header
+            header = tk.Frame(disk_frame, bg=self.colors['secondary'])
+            header.pack(fill=tk.X)
+
+            tk.Label(
+                header,
+                text=f"{device} ({info['mountpoint']})",
+                bg=self.colors['secondary'],
+                fg=self.colors['fg'],
+                font=('Segoe UI', 9)
+            ).pack(side=tk.LEFT)
+
+            tk.Label(
+                header,
+                text=f"{info['used_gb']:.1f} / {info['total_gb']:.1f} GB ({info['percent']:.1f}%)",
+                bg=self.colors['secondary'],
+                fg=self.colors['text_secondary'],
+                font=('Segoe UI', 8)
+            ).pack(side=tk.RIGHT)
+
+            # Barre
+            progress = tk.Canvas(disk_frame, bg='#1a1a1a', height=6, highlightthickness=0)
+            progress.pack(fill=tk.X, pady=2)
+
+            color = self.colors['success']
+            if info['percent'] > 90:
+                color = self.colors['danger']
+            elif info['percent'] > 75:
+                color = self.colors['warning']
+
+            progress.update()
+            width = progress.winfo_width()
+            if width > 1:
+                fill_width = (width * info['percent']) / 100
+                progress.create_rectangle(0, 0, fill_width, 6, fill=color, outline="")
+
+    def _update_processes(self, processes):
+        """Met à jour la liste des processus"""
+        self.process_widget.process_list.delete(0, tk.END)
+
+        for proc in processes[:10]:
+            text = f"{proc['name']:<25} CPU: {proc['cpu']:>5.1f}%  MEM: {proc['memory']:>5.1f}%"
+            self.process_widget.process_list.insert(tk.END, text)
+
+    def _update_alerts(self):
+        """Met à jour les alertes"""
+        alerts = self.monitor.get_alerts()
+
+        self.alerts_widget.alerts_list.delete(0, tk.END)
+        self.alerts_widget.alerts_count.config(text=str(len(alerts)))
+
+        for alert in alerts[-10:]:  # 10 dernières
+            time_str = alert['timestamp'].strftime("%H:%M:%S")
+            text = f"[{time_str}] {alert['message']}"
+            self.alerts_widget.alerts_list.insert(0, text)
+
+    def _update_chart(self, data):
+        """Met à jour le graphique historique"""
+        canvas = self.chart_widget.chart_canvas
+        canvas.delete("all")
+
+        canvas.update()
+        width = canvas.winfo_width()
+        height = canvas.winfo_height()
+
+        if width < 10 or height < 10:
+            return
+
+        # Marges
+        margin = 30
+        chart_width = width - 2 * margin
+        chart_height = height - 2 * margin
+
+        # Axes
+        canvas.create_line(margin, height - margin, width - margin, height - margin,
+                          fill=self.colors['border'], width=2)
+        canvas.create_line(margin, margin, margin, height - margin,
+                          fill=self.colors['border'], width=2)
+
+        # Labels Y (0-100%)
+        for i in range(0, 101, 25):
+            y = height - margin - (chart_height * i / 100)
+            canvas.create_line(margin - 5, y, margin, y, fill=self.colors['border'])
+            canvas.create_text(margin - 10, y, text=f"{i}%", fill=self.colors['text_secondary'],
+                             font=('Segoe UI', 7), anchor='e')
+
+        # Dessiner les courbes
+        self._draw_chart_line(canvas, self.history['cpu'], self.colors['primary'],
+                            margin, chart_width, chart_height, height)
+        self._draw_chart_line(canvas, self.history['memory'], self.colors['success'],
+                            margin, chart_width, chart_height, height)
+
+    def _draw_chart_line(self, canvas, data, color, margin, chart_width, chart_height, height):
+        """Dessine une ligne sur le graphique"""
+        if len(data) < 2:
+            return
+
+        points = []
+        for i, value in enumerate(data):
+            x = margin + (chart_width * i / max(len(data) - 1, 1))
+            y = height - margin - (chart_height * value / 100)
+            points.extend([x, y])
+
+        if len(points) >= 4:
+            canvas.create_line(points, fill=color, width=2, smooth=True)
+
+
+# Test autonome
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+
+    root = tk.Tk()
+    root.title("Test Dashboard")
+    root.geometry("1200x800")
+    root.configure(bg='#0a0a0a')
+
+    dashboard = MonitoringDashboard(root)
+
+    root.mainloop()

@@ -1,0 +1,94 @@
+# ═══════════════════════════════════════════════════════════
+#  Kilo Code - Configuration d'indexation
+#  NiTriTe V13.0
+# ═══════════════════════════════════════════════════════════
+
+# ─────────────────────────────────────────────────────────
+# 🚫 DOSSIERS À EXCLURE DE L'INDEXATION
+# ─────────────────────────────────────────────────────────
+
+# Environnements virtuels Python
+venv_nitrite/
+venv/
+env/
+ENV/
+.venv/
+
+# Fichiers compilés Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.so
+
+# Builds et distributions
+dist/
+*.egg-info/
+.eggs/
+
+# Téléchargements et cache
+downloads/
+*.exe
+*.msi
+*.msix
+*.appx
+
+# Fichiers temporaires
+*.tmp
+*.temp
+temp/
+tmp/
+
+# Archives et backups
+*.zip
+*.bak
+*.backup
+backup*/
+
+# IDE (mais garder .vscode pour l'indexation si nécessaire)
+.idea/
+*.iml
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+
+# Système Windows
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Builds portables spécifiques
+NiTrite_Portable_Simple/
+NiTrite_Portable_Complet/
+NiTrite_v12_Final/
+NiTrite_Autonome/
+NiTriTe V12 Portable/
+NiTriTe_V13_Portable_*/
+
+# Python embedded
+python-*.zip
+python-*-embed-*.zip
+get-pip.py
+
+# Fichiers de données temporaires
+*.db.tmp
+*.json.backup_*
+portable_apps_export_*.json
+
+# ─────────────────────────────────────────────────────────
+# ✅ DOSSIERS À INCLURE (commentés pour forcer l'inclusion)
+# ─────────────────────────────────────────────────────────
+
+# NOTE: Les dossiers suivants DOIVENT être indexés:
+# - src/          (code source principal)
+# - data/         (fichiers de configuration)
+# - config/       (configuration utilisateur)
+# - docs/         (documentation)
+# - logs/         (logs pour débogage - GARDER pour analyse)
+# - build/        (scripts de build - GARDER)
+# - assets/       (ressources graphiques)
+
+# ═══════════════════════════════════════════════════════════
+# FIN DE CONFIGURATION
+# ═══════════════════════════════════════════════════════════

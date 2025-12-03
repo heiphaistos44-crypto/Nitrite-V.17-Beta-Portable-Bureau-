@@ -1,0 +1,43 @@
+{
+  "applications_categories": [
+    "Outils OrdiPlus",
+    "Pack Office",
+    "Navigateurs",
+    "Sécurité",
+    "Antivirus",
+    "Bureautique",
+    "Multimédia",
+    "Développement",
+    "Utilitaires",
+    "Communication",
+    "Jeux",
+    "Désinstallateurs Antivirus",
+    "Internet",
+    "Réseaux Sociaux",
+    "Streaming Vidéo",
+    "Streaming Audio",
+    "IA & Assistants",
+    "Utilitaires Système",
+    "Imprimantes & Scan",
+    "Services Apple",
+    "Suites Professionnelles",
+    "Productivité",
+    "Stockage Cloud",
+    "PDF et Documents",
+    "Compression"
+  ],
+  "tools_categories": [
+    "🔨 Réparation Système",
+    "🔧 Activation & Téléchargements",
+    "🧹 Maintenance & Nettoyage",
+    "📊 Diagnostics & Infos",
+    "🌐 Réseau & Internet",
+    "⚡ WinGet Package Manager",
+    "⚙️ Paramètres Windows",
+    "🏭 Support Fabricants",
+    "🛒 Fournisseurs & Achats",
+    "📊 Benchmark & Tests",
+    "🔧 Drivers",
+    "📚 Documentation"
+  ]
+}
