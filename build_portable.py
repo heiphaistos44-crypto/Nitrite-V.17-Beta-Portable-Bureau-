@@ -106,8 +106,9 @@ def build_executable():
     print("   Cette opération peut prendre plusieurs minutes...\n")
 
     try:
+        # Utiliser python -m PyInstaller pour compatibilité Windows
         result = subprocess.run(
-            ['pyinstaller', '--noconfirm', '--clean', 'NiTriTe_V17_Portable.spec'],
+            [sys.executable, '-m', 'PyInstaller', '--noconfirm', '--clean', 'NiTriTe_V17_Portable.spec'],
             check=True,
             capture_output=False,
             text=True
