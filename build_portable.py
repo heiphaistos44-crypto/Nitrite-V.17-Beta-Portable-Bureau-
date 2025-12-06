@@ -46,18 +46,19 @@ def check_dependencies():
     """Vérifier les dépendances"""
     print("\n📦 Vérification des dépendances...")
 
-    required = [
-        'customtkinter',
-        'Pillow',
-        'requests',
-        'psutil',
-        'pyinstaller'
-    ]
+    # Mapping package pip → module Python
+    required = {
+        'customtkinter': 'customtkinter',
+        'Pillow': 'PIL',
+        'requests': 'requests',
+        'psutil': 'psutil',
+        'pyinstaller': 'PyInstaller'
+    }
 
     missing = []
-    for package in required:
+    for package, module in required.items():
         try:
-            __import__(package.lower().replace('-', '_'))
+            __import__(module)
             print(f"   ✅ {package}")
         except ImportError:
             print(f"   ❌ {package} - MANQUANT")
