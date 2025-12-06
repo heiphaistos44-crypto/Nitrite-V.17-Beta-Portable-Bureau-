@@ -24,7 +24,7 @@ hiddenimports += collect_submodules('customtkinter')
 
 
 a = Analysis(
-    ['src\\v14_mvp\\main_app.py'],
+    [os.path.join('src', 'v14_mvp', 'main_app.py')],
     pathex=[],
     binaries=[],
     datas=[('data', 'data'), ('assets', 'assets'), ('src', 'src')],
