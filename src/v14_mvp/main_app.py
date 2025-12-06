@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Application Principale - NiTriTe V14 MVP
+Application Principale - NiTriTe V17 Beta
 Point d'entrée principal avec architecture moderne
 """
 
@@ -59,14 +59,14 @@ from v14_mvp.page_terminal import TerminalPage
 from v14_mvp.splash_loader import SplashScreen
 
 
-class NiTriTeV14(ctk.CTk):
-    """Application principale NiTriTe V14"""
-    
+class NiTriTeV17(ctk.CTk):
+    """Application principale NiTriTe V17"""
+
     def __init__(self):
         super().__init__()
-        
+
         # Configuration base
-        self.title("NiTriTe V14.0 MVP - Maintenance Informatique Professionnelle")
+        self.title("NiTriTe V17.0 Beta - Maintenance Informatique Professionnelle")
         self.geometry("1400x800")
         self.minsize(1200, 700)
         
@@ -250,13 +250,13 @@ def main():
             return
         
         print(f"[OK] Python {py_version.major}.{py_version.minor}.{py_version.micro}")
-        print("[>>] Lancement NiTriTe V14 MVP...")
+        print("[>>] Lancement NiTriTe V17 Beta...")
         print(f"[..] Répertoire: {os.getcwd()}")
         print()
-        
+
         # Lancer app
-        print("[..] Création de l'instance NiTriTeV14...")
-        app = NiTriTeV14()
+        print("[..] Création de l'instance NiTriTeV17...")
+        app = NiTriTeV17()
         print("[OK] Instance créée")
         print("[>>] Démarrage mainloop...")
         app.mainloop()

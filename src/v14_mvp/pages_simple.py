@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Pages Simplifiées - NiTriTe V14 MVP
+Pages Simplifiées - NiTriTe V17 MVP
 Versions simplifiées des pages pour MVP
 """
 

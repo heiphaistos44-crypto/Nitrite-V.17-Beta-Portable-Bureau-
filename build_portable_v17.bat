@@ -1,6 +1,6 @@
 @echo off
 REM =============================================
-REM Build NiTriTe V14 Portable (EXE autonome)
+REM Build NiTriTe V17 Portable (EXE autonome)
 REM =============================================
 
 REM 1. Vérifier Python
@@ -23,8 +23,9 @@ if exist dist rmdir /s /q dist
 if exist build rmdir /s /q build
 if exist __pycache__ rmdir /s /q __pycache__
 
-REM 4. Lancer le build
-pyinstaller --noconfirm --onefile --console --clean --add-data "data;data" --add-data "assets;assets" --add-data "src;src" --hidden-import=psutil --hidden-import=requests --hidden-import=wmi --hidden-import=win32com --hidden-import=win32com.client --hidden-import=pythoncom --collect-submodules win32com --collect-submodules wmi --collect-submodules pythoncom src/v14_mvp/main_app.py --name NiTriTe_V17_Portable
+REM 4. Lancer le build avec le fichier .spec (plus propre et maintenable)
+echo [INFO] Utilisation du fichier NiTriTe_V17_Portable.spec pour le build...
+pyinstaller --noconfirm --clean NiTriTe_V17_Portable.spec
 
 REM 5. Afficher le résultat
 if exist dist\NiTriTe_V17_Portable.exe (

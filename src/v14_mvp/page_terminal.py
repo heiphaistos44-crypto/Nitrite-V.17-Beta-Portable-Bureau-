@@ -212,7 +212,7 @@ class TerminalPage(ctk.CTkFrame):
         
         # Message de bienvenue
         welcome_msg = f"""╔═══════════════════════════════════════════════════════════════╗
-║  NiTriTe V14 - Terminal Intégré                               ║
+║  NiTriTe V17 - Terminal Intégré                               ║
 ║  Shell: {shell_cmd:<50} ║
 ╚═══════════════════════════════════════════════════════════════╝
 

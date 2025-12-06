@@ -555,7 +555,7 @@ class PortableAppsPage(ctk.CTkFrame):
                         f"Description: {app['description']}\n"
                         f"Taille: {app['size']}\n"
                         f"Installé le: {datetime.now().strftime('%d/%m/%Y %H:%M')}\n\n"
-                        f"Cette app portable est un placeholder installé par NiTriTe V14.\n"
+                        f"Cette app portable est un placeholder installé par NiTriTe V17.\n"
                         f"Pour télécharger la vraie version, visitez:\n{app['url']}\n\n"
                         f"Dossier: {app_folder}",
                         encoding='utf-8'
@@ -572,7 +572,7 @@ class PortableAppsPage(ctk.CTkFrame):
                         f'echo   {app["name"]}\n'
                         f"echo ========================================\n"
                         f"echo.\n"
-                        f"echo App installee par NiTriTe V14\n"
+                        f"echo App installee par NiTriTe V17\n"
                         f"echo.\n"
                         f"echo Pour telecharger la version complete:\n"
                         f'echo {app["url"]}\n'

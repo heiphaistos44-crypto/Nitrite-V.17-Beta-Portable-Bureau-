@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Pages Optimisées - NiTriTe V14
+Pages Optimisées - NiTriTe V17
 Versions optimisées avec chargement progressif
 """
 
@@ -18,21 +18,48 @@ class OptimizedApplicationsPage(ctk.CTkFrame):
     
     def __init__(self, parent, programs_data: Dict):
         super().__init__(parent, fg_color=DesignTokens.BG_PRIMARY)
-        
-        self.programs_data = programs_data
+
+        self.programs_data = programs_data if programs_data else {}
         self.selected_apps = set()
         self.all_apps = []
         self.filtered_categories = {}
-        
+
+        # Validation des données
+        if not self.programs_data:
+            print("⚠️ AVERTISSEMENT: Aucune donnée de programmes chargée")
+            self._create_error_message("Aucune donnée d'applications disponible")
+            return
+
         # Préparer liste
         self._prepare_apps_list()
-        
+
         # UI
         self._create_header()
         self._create_stats()
         self._create_search()
         self._create_content()
-    
+
+    def _create_error_message(self, message):
+        """Afficher un message d'erreur"""
+        error_container = ctk.CTkFrame(self, fg_color=DesignTokens.BG_PRIMARY)
+        error_container.pack(fill=tk.BOTH, expand=True, padx=50, pady=50)
+
+        error_label = ctk.CTkLabel(
+            error_container,
+            text=f"⚠️ {message}",
+            font=(DesignTokens.FONT_FAMILY, 18),
+            text_color=DesignTokens.WARNING
+        )
+        error_label.pack(expand=True)
+
+        help_label = ctk.CTkLabel(
+            error_container,
+            text="Vérifiez que le fichier data/programs.json existe et est correctement formaté.",
+            font=(DesignTokens.FONT_FAMILY, 12),
+            text_color=DesignTokens.TEXT_SECONDARY
+        )
+        help_label.pack(pady=10)
+
     def _prepare_apps_list(self):
         """Préparer liste d'applications groupées par catégorie (TOUTES les apps)"""
         # Préparer liste complète
@@ -620,14 +647,41 @@ class OptimizedApplicationsPage(ctk.CTkFrame):
 
 class OptimizedToolsPage(ctk.CTkFrame):
     """Page Outils optimisée avec sections repliables"""
-    
+
     def __init__(self, parent, tools_data: Dict):
         super().__init__(parent, fg_color=DesignTokens.BG_PRIMARY)
-        
-        self.tools_data = tools_data
-        
+
+        self.tools_data = tools_data if tools_data else {}
+
+        # Validation des données
+        if not self.tools_data:
+            print("⚠️ AVERTISSEMENT: Aucune donnée d'outils chargée")
+            self._create_error_message("Aucune donnée d'outils système disponible")
+            return
+
         self._create_header()
         self._create_sections()
+
+    def _create_error_message(self, message):
+        """Afficher un message d'erreur"""
+        error_container = ctk.CTkFrame(self, fg_color=DesignTokens.BG_PRIMARY)
+        error_container.pack(fill=tk.BOTH, expand=True, padx=50, pady=50)
+
+        error_label = ctk.CTkLabel(
+            error_container,
+            text=f"⚠️ {message}",
+            font=(DesignTokens.FONT_FAMILY, 18),
+            text_color=DesignTokens.WARNING
+        )
+        error_label.pack(expand=True)
+
+        help_label = ctk.CTkLabel(
+            error_container,
+            text="Vérifiez que le fichier src/tools_data_complete.py existe et est correctement formaté.",
+            font=(DesignTokens.FONT_FAMILY, 12),
+            text_color=DesignTokens.TEXT_SECONDARY
+        )
+        help_label.pack(pady=10)
     
     def _create_header(self):
         """Header"""

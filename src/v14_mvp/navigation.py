@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Navigation Moderne - NiTriTe V14 MVP
+Navigation Moderne - NiTriTe V17 Beta
 Barre de navigation latérale
 """
 
@@ -68,7 +68,7 @@ class ModernNavigation(ctk.CTkFrame):
         
         version = ctk.CTkLabel(
             info_frame,
-            text="Version 14.0 MVP",
+            text="Version 17.0 Beta",
             font=(DesignTokens.FONT_FAMILY, DesignTokens.FONT_SIZE_SM),
             text_color=DesignTokens.TEXT_SECONDARY,
             anchor='w'

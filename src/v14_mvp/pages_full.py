@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Pages Complètes CORRIGÉES - NiTriTe V14
+Pages Complètes CORRIGÉES - NiTriTe V17
 Updates, Backup, Diagnostic, Optimizations avec vraies commandes
 """
 

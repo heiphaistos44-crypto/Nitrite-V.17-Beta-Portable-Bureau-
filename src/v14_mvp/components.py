@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Composants Modernes - NiTriTe V14 MVP
+Composants Modernes - NiTriTe V17 MVP
 Composants réutilisables avec design moderne
 """
 

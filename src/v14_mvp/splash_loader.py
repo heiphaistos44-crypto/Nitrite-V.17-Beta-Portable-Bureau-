@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Splash Screen avec Chargement - NiTriTe V14
+Splash Screen avec Chargement - NiTriTe V17
 Charge toutes les données avant d'afficher l'interface
 """
 
@@ -32,7 +32,7 @@ class SplashScreen(ctk.CTkToplevel):
         self.data_loaded = {}
         
         # Configuration fenêtre
-        self.title("NiTriTe V14")
+        self.title("NiTriTe V17")
         self.geometry("600x400")
         self.resizable(False, False)
         
@@ -66,7 +66,7 @@ class SplashScreen(ctk.CTkToplevel):
         # Logo/Titre
         title = ctk.CTkLabel(
             main,
-            text="🚀 NiTriTe V14",
+            text="🚀 NiTriTe V17",
             font=(DesignTokens.FONT_FAMILY, 48, "bold"),
             text_color=DesignTokens.ACCENT_PRIMARY
         )
@@ -113,7 +113,7 @@ class SplashScreen(ctk.CTkToplevel):
         # Version
         version = ctk.CTkLabel(
             main,
-            text="Version 14.0 MVP",
+            text="Version 17.0 Beta",
             font=(DesignTokens.FONT_FAMILY, 10),
             text_color=DesignTokens.TEXT_TERTIARY
         )
@@ -132,7 +132,7 @@ class SplashScreen(ctk.CTkToplevel):
             time.sleep(0.3)
             
             programs_path = resource_path(os.path.join('data', 'programs.json'))
-            if programs_path.exists():
+            if os.path.exists(programs_path):
                 with open(programs_path, 'r', encoding='utf-8') as f:
                     self.data_loaded['programs'] = json.load(f)
                     

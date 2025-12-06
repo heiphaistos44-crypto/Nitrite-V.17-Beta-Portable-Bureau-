@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Page Master Install Simple - NiTriTe V14
+Page Master Install Simple - NiTriTe V17
 Sans édition, juste affichage et installation
 """
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Design System - NiTriTe V14 MVP
+Design System - NiTriTe V17 Beta
 Système de design moderne avec tokens réutilisables
 """
 

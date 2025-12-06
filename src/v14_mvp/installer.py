@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Module d'Installation - NiTriTe V14
+Module d'Installation - NiTriTe V17
 Gestion des installations via WinGet, Chocolatey et téléchargement direct
 """
 

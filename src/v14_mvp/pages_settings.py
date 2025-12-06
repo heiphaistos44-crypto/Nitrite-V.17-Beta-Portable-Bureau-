@@ -280,14 +280,14 @@ class SettingsPage(ctk.CTkFrame):
         content.pack(fill=tk.X, padx=20, pady=(0, 15))
         
         info_text = """
-        NiTriTe V14.0 MVP
+        NiTriTe V17.0 Beta
         Maintenance Informatique Professionnelle
-        
+
         ✅ 700+ applications disponibles
         ✅ 500+ outils système
         ✅ Installation automatisée
         ✅ Interface moderne Material Design 3
-        
+
         © 2024 - Tous droits réservés
         """
         
