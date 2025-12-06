@@ -59,6 +59,15 @@ from v14_mvp.page_terminal import TerminalPage
 from v14_mvp.splash_loader import SplashScreen
 
 
+def safe_print(*args, **kwargs):
+    """Print sécurisé qui fonctionne même en mode GUI (console=False)"""
+    if sys.stdout is not None:
+        try:
+            print(*args, **kwargs)
+        except:
+            pass  # Ignore les erreurs de print en mode GUI
+
+
 class NiTriTeV17(ctk.CTk):
     """Application principale NiTriTe V17"""
 
@@ -81,14 +90,14 @@ class NiTriTeV17(ctk.CTk):
         ctk.set_default_color_theme("blue")
         
         # Charger données directement (sans splash temporairement)
-        print("🔄 Chargement des données...")
+        safe_print("🔄 Chargement des données...")
         self.programs_data = self._load_programs()
         self.tools_data = self._load_tools()
         self.config_data = {}
         self.current_page_widget = None
-        
-        print(f"✅ {len(self.programs_data)} catégories chargées")
-        print(f"✅ {sum(len(apps) for apps in self.programs_data.values())} applications")
+
+        safe_print(f"✅ {len(self.programs_data)} catégories chargées")
+        safe_print(f"✅ {sum(len(apps) for apps in self.programs_data.values())} applications")
         
         # Créer UI
         self._create_main_layout()
@@ -108,12 +117,13 @@ class NiTriTeV17(ctk.CTk):
                 with open(programs_path, 'r', encoding='utf-8') as f:
                     return json.load(f)
             else:
-                print(f"⚠️ Fichier non trouvé: {programs_path}")
+                safe_print(f"⚠️ Fichier non trouvé: {programs_path}")
                 return {}
         except Exception as e:
-            print(f"❌ Erreur chargement programmes: {e}")
+            safe_print(f"❌ Erreur chargement programmes: {e}")
             import traceback
-            traceback.print_exc()
+            if sys.stdout is not None:
+                traceback.print_exc()
             return {}
     
     def _load_tools(self):
@@ -137,12 +147,13 @@ class NiTriTeV17(ctk.CTk):
                 spec.loader.exec_module(tools_module)
                 return tools_module.get_all_tools()
             else:
-                print("⚠️ Module tools_data_complete introuvable")
+                safe_print("⚠️ Module tools_data_complete introuvable")
                 return {}
         except Exception as e:
-            print(f"⚠️ Erreur chargement tools: {e}")
+            safe_print(f"⚠️ Erreur chargement tools: {e}")
             import traceback
-            traceback.print_exc()
+            if sys.stdout is not None:
+                traceback.print_exc()
             return {}
     
     def _create_main_layout(self):
@@ -234,56 +245,70 @@ class NiTriTeV17(ctk.CTk):
 def main():
     """Point d'entrée"""
     try:
-        # Configurer encodage UTF-8 pour Windows
-        if sys.platform == 'win32':
+        # Configurer encodage UTF-8 pour Windows (seulement si console disponible)
+        if sys.platform == 'win32' and sys.stdout is not None:
             import io
-            sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
-            sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
-        
+            if hasattr(sys.stdout, 'buffer') and sys.stdout.buffer is not None:
+                sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+            if hasattr(sys.stderr, 'buffer') and sys.stderr.buffer is not None:
+                sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+
         # Vérifier Python 3.8-3.12
         py_version = sys.version_info
         if py_version.major != 3 or py_version.minor < 8 or py_version.minor > 12:
-            print(f"[X] ERREUR: Python {py_version.major}.{py_version.minor} détecté")
-            print("[!] CustomTkinter requiert Python 3.8-3.12")
-            print("[>] Téléchargez Python 3.12: https://www.python.org/downloads/")
-            input("\nAppuyez sur Entrée pour quitter...")
+            # En mode GUI, on ne peut pas afficher ces messages
+            # L'application ne se lancera simplement pas
             return
-        
-        print(f"[OK] Python {py_version.major}.{py_version.minor}.{py_version.micro}")
-        print("[>>] Lancement NiTriTe V17 Beta...")
-        print(f"[..] Répertoire: {os.getcwd()}")
-        print()
+
+        safe_print(f"[OK] Python {py_version.major}.{py_version.minor}.{py_version.micro}")
+        safe_print("[>>] Lancement NiTriTe V17 Beta...")
+        safe_print(f"[..] Répertoire: {os.getcwd()}")
+        safe_print()
 
         # Lancer app
-        print("[..] Création de l'instance NiTriTeV17...")
+        safe_print("[..] Création de l'instance NiTriTeV17...")
         app = NiTriTeV17()
-        print("[OK] Instance créée")
-        print("[>>] Démarrage mainloop...")
+        safe_print("[OK] Instance créée")
+        safe_print("[>>] Démarrage mainloop...")
         app.mainloop()
-        print("[OK] Application fermée normalement")
-    
+        safe_print("[OK] Application fermée normalement")
+
     except KeyboardInterrupt:
-        print("\n[!] Interruption utilisateur (Ctrl+C)")
-    
+        safe_print("\n[!] Interruption utilisateur (Ctrl+C)")
+
     except Exception as e:
-        print(f"\n{'='*60}")
-        print(f"[X] ERREUR CRITIQUE")
-        print(f"{'='*60}")
-        print(f"Type: {type(e).__name__}")
-        print(f"Message: {e}")
-        print(f"\n[i] Traceback complet:")
-        print(f"{'-'*60}")
-        import traceback
-        traceback.print_exc()
-        print(f"{'-'*60}")
-        print(f"\n[?] Conseils:")
-        print(f"  - Vérifiez que tous les fichiers sont présents dans src/v14_mvp/")
-        print(f"  - Vérifiez data/programs.json existe")
-        print(f"  - Essayez de réinstaller: pip install --upgrade customtkinter")
-        print(f"\n{'='*60}")
-        input("\nAppuyez sur Entrée pour quitter...")
+        # En mode GUI, afficher une messagebox au lieu de print
+        if sys.stdout is None:
+            # Mode GUI - afficher une fenêtre d'erreur
+            try:
+                import tkinter.messagebox as messagebox
+                error_msg = f"ERREUR CRITIQUE\n\n{type(e).__name__}: {e}\n\nL'application ne peut pas démarrer."
+                messagebox.showerror("NiTriTe V17 - Erreur", error_msg)
+            except:
+                pass  # Si même ça échoue, on ne peut rien faire
+        else:
+            # Mode console
+            safe_print(f"\n{'='*60}")
+            safe_print(f"[X] ERREUR CRITIQUE")
+            safe_print(f"{'='*60}")
+            safe_print(f"Type: {type(e).__name__}")
+            safe_print(f"Message: {e}")
+            safe_print(f"\n[i] Traceback complet:")
+            safe_print(f"{'-'*60}")
+            import traceback
+            traceback.print_exc()
+            safe_print(f"{'-'*60}")
+            safe_print(f"\n[?] Conseils:")
+            safe_print(f"  - Vérifiez que tous les fichiers sont présents dans src/v14_mvp/")
+            safe_print(f"  - Vérifiez data/programs.json existe")
+            safe_print(f"  - Essayez de réinstaller: pip install --upgrade customtkinter")
+            safe_print(f"\n{'='*60}")
+            if sys.stdin is not None:
+                input("\nAppuyez sur Entrée pour quitter...")
 
 
 if __name__ == "__main__":
     main()
-    input("\nAppuyez sur Entrée pour fermer la fenêtre...")
+    # Ne demander input que si stdin existe (mode console)
+    if sys.stdin is not None:
+        input("\nAppuyez sur Entrée pour fermer la fenêtre...")
